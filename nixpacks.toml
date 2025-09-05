@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs", "pnpm"]
+
+[phases.install]
+cmds = ["pnpm install"]
+
+[phases.build]
+cmds = ["pnpm --filter @tribal/db generate", "pnpm --filter @tribal/web build"]
+
+[start]
+cmd = "cd apps/web && pnpm start"
