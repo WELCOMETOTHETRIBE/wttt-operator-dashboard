@@ -13,6 +13,7 @@
     "dev:web": "pnpm --filter @tribal/web dev",
     "dev:worker": "pnpm --filter @tribal/worker dev",
     "build": "pnpm --recursive build",
+    "start": "cd apps/web && pnpm start",
     "test": "pnpm --recursive test",
     "test:e2e": "pnpm --filter @tribal/web test:e2e",
     "lint": "pnpm --recursive lint",
