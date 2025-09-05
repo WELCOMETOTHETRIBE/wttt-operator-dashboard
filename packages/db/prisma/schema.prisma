@@ -1,0 +1,478 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Vendor {
+  id           String  @id @default(cuid())
+  name         String
+  contact      String?
+  leadTimeDays Int     @default(7)
+  terms        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ingredients     Ingredient[]
+  packagingItems  PackagingItem[]
+  purchaseOrders  PurchaseOrder[]
+
+  @@map("vendors")
+}
+
+model Channel {
+  id         String   @id @default(cuid())
+  name       String
+  type       ChannelType
+  configJson Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("channels")
+}
+
+// Brand & Assets
+model BrandKit {
+  id           String   @id @default(cuid())
+  name         String
+  primaryHex   String
+  secondaryHex String
+  accentHex    String
+  fontPrimary  String?
+  tone         String?
+  mission      String?
+  values       String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("brand_kits")
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  kind      AssetKind
+  url       String
+  filename  String
+  version   String   @default("1.0.0")
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("assets")
+}
+
+// Products & Inventory
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  brand       String
+  family      String?
+  description String?
+  status      ProductStatus @default(ACTIVE)
+  defaultUom  String        @default("unit")
+  upc         String?
+  asin        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  skus     Sku[]
+  recipes  Recipe[]
+  boms     Bom[]
+
+  @@map("products")
+}
+
+model Sku {
+  id            String   @id @default(cuid())
+  productId     String
+  code          String   @unique
+  title         String
+  channelDataJson Json?
+  casePackQty   Int      @default(1)
+  innerPackQty  Int      @default(1)
+  netWeightGrams Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  lots      Lot[]
+  boms      Bom[]
+  woOutputs WoOutput[]
+
+  @@map("skus")
+}
+
+model Ingredient {
+  id         String   @id @default(cuid())
+  name       String
+  uom        String   // 'g'|'kg'|'lb'|'oz'|'ml'|'l'|'unit'
+  vendorId   String?
+  costPerUom Decimal  @default(0)
+  organic    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id])
+  recipeLines    RecipeLine[]
+  woConsumptions WoConsumption[]
+  inventoryLedger InventoryLedger[]
+
+  @@map("ingredients")
+}
+
+model Recipe {
+  id         String   @id @default(cuid())
+  productId  String
+  version    String   @default("1.0")
+  yieldQty   Decimal
+  yieldUom   String
+  instructions String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  recipeLines  RecipeLine[]
+  workOrders   WorkOrder[]
+
+  @@map("recipes")
+}
+
+model RecipeLine {
+  id           String   @id @default(cuid())
+  recipeId     String
+  ingredientId String
+  qtyPerBatch  Decimal
+  lossPct      Decimal  @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@map("recipe_lines")
+}
+
+model PackagingItem {
+  id         String         @id @default(cuid())
+  name       String
+  uom        String
+  vendorId   String?
+  costPerUom Decimal        @default(0)
+  kind       PackagingKind
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relations
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id])
+  boms           Bom[]
+  inventoryLedger InventoryLedger[]
+
+  @@map("packaging_items")
+}
+
+model Bom {
+  id               String   @id @default(cuid())
+  productId        String
+  packagingItemId  String
+  qtyPerUnit       Decimal
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  packagingItem  PackagingItem  @relation(fields: [packagingItemId], references: [id])
+
+  @@map("boms")
+}
+
+model Lot {
+  id        String    @id @default(cuid())
+  skuId     String
+  lotCode   String    @unique
+  mfgDate   DateTime
+  expDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  sku           Sku             @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  inventoryLedger InventoryLedger[]
+  woOutputs     WoOutput[]
+
+  @@map("lots")
+}
+
+model InventoryLedger {
+  id              String      @id @default(cuid())
+  skuId           String?
+  ingredientId    String?
+  packagingItemId String?
+  lotId           String?
+  txnType         TxnType
+  qty             Decimal
+  uom             String
+  unitCost        Decimal     @default(0)
+  source          String?
+  ref             String?
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  sku           Sku?           @relation(fields: [skuId], references: [id])
+  ingredient    Ingredient?    @relation(fields: [ingredientId], references: [id])
+  packagingItem PackagingItem? @relation(fields: [packagingItemId], references: [id])
+  lot           Lot?           @relation(fields: [lotId], references: [id])
+
+  @@map("inventory_ledger")
+}
+
+model ReorderPolicy {
+  id             String   @id @default(cuid())
+  itemType       ItemType
+  itemId         String
+  minQty         Decimal
+  targetQty      Decimal
+  safetyStockQty Decimal  @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("reorder_policies")
+}
+
+// Purchasing & Production
+model PurchaseOrder {
+  id        String          @id @default(cuid())
+  vendorId  String
+  status    PurchaseStatus  @default(DRAFT)
+  eta       DateTime?
+  notes     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  // Relations
+  vendor   Vendor   @relation(fields: [vendorId], references: [id])
+  poLines  PoLine[]
+
+  @@map("purchase_orders")
+}
+
+model PoLine {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  itemType        ItemType
+  itemId          String
+  qty             Decimal
+  uom             String
+  unitCost        Decimal
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@map("po_lines")
+}
+
+model WorkOrder {
+  id           String        @id @default(cuid())
+  productId    String
+  recipeId     String
+  plannedUnits Decimal
+  status       WorkStatus    @default(PLANNED)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  product       Product         @relation(fields: [productId], references: [id])
+  recipe        Recipe          @relation(fields: [recipeId], references: [id])
+  consumptions  WoConsumption[]
+  outputs       WoOutput[]
+
+  @@map("work_orders")
+}
+
+model WoConsumption {
+  id           String   @id @default(cuid())
+  workOrderId  String
+  ingredientId String
+  qty          Decimal
+  uom          String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  workOrder  WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@map("wo_consumptions")
+}
+
+model WoOutput {
+  id          String   @id @default(cuid())
+  workOrderId String
+  skuId       String
+  qty         Decimal
+  lotId       String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  sku       Sku       @relation(fields: [skuId], references: [id])
+  lot       Lot?      @relation(fields: [lotId], references: [id])
+
+  @@map("wo_outputs")
+}
+
+// Amazon
+model AmazonOrder {
+  id                String   @id @default(cuid())
+  amazonOrderId     String   @unique
+  purchaseDate      DateTime
+  lastUpdateDate    DateTime
+  orderStatus       String
+  orderTotal        Decimal
+  marketplaceId     String
+  buyerEmail        String?
+  shipServiceLevel  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  orderItems AmazonOrderItem[]
+
+  @@map("amazon_orders")
+}
+
+model AmazonOrderItem {
+  id              String   @id @default(cuid())
+  amazonOrderId   String
+  asin            String
+  sellerSku       String
+  quantityOrdered Int
+  itemPrice       Decimal
+  itemTax         Decimal  @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  amazonOrder AmazonOrder @relation(fields: [amazonOrderId], references: [id], onDelete: Cascade)
+
+  @@map("amazon_order_items")
+}
+
+model AmazonInventory {
+  id              String   @id @default(cuid())
+  asin            String
+  fnsku           String?
+  sellerSku       String
+  condition       String
+  totalQty        Int
+  fulfillableQty  Int
+  inboundQty      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([asin, sellerSku, condition])
+  @@map("amazon_inventory")
+}
+
+model AmazonReportLog {
+  id           String   @id @default(cuid())
+  reportType   String
+  requestedAt  DateTime
+  completedAt  DateTime?
+  status       String
+  key          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("amazon_report_logs")
+}
+
+// Enums
+enum Role {
+  OWNER
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum ChannelType {
+  AMAZON
+  DTC
+  WHOLESALE
+}
+
+enum AssetKind {
+  LOGO
+  PACKAGING
+  LABEL
+  PHOTO
+  GUIDE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+enum PackagingKind {
+  POUCH
+  SACHET
+  BOX
+  LABEL
+  INSERT
+  CASE
+  PALLET
+}
+
+enum TxnType {
+  RECEIPT
+  CONSUME
+  ADJUST
+  SALE
+  RETURN
+}
+
+enum ItemType {
+  SKU
+  INGREDIENT
+  PACKAGING
+}
+
+enum PurchaseStatus {
+  DRAFT
+  SENT
+  RECEIVED
+  CANCELLED
+}
+
+enum WorkStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

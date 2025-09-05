@@ -1,0 +1,36 @@
+{
+  "name": "tribal",
+  "version": "1.0.0",
+  "description": "WELCOME TO THE TRIBE (WTTT) Operator Dashboard",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --filter='!@tribal/worker' dev",
+    "dev:web": "pnpm --filter @tribal/web dev",
+    "dev:worker": "pnpm --filter @tribal/worker dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "test:e2e": "pnpm --filter @tribal/web test:e2e",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "db:generate": "pnpm --filter @tribal/db generate",
+    "db:migrate": "pnpm --filter @tribal/db migrate",
+    "db:seed": "pnpm --filter @tribal/db seed",
+    "db:reset": "pnpm --filter @tribal/db reset",
+    "clean": "pnpm --recursive clean"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "prettier": "^3.1.0",
+    "eslint": "^8.55.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

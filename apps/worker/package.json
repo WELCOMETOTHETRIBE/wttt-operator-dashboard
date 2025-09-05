@@ -1,0 +1,18 @@
+{
+  "name": "@tribal/worker",
+  "version": "1.0.0",
+  "description": "WTTT Worker Service - FastAPI ETL and Amazon SP-API Integration",
+  "private": true,
+  "scripts": {
+    "dev": "uvicorn main:app --reload --host 0.0.0.0 --port 8001",
+    "start": "uvicorn main:app --host 0.0.0.0 --port 8001",
+    "test": "pytest",
+    "lint": "ruff check .",
+    "format": "ruff format .",
+    "clean": "rm -rf __pycache__ .pytest_cache dist *.egg-info"
+  },
+  "dependencies": {
+    "@tribal/db": "workspace:*"
+  },
+  "devDependencies": {}
+}
